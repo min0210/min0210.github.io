@@ -8,7 +8,7 @@ Sources:
 - alphaXiv links are added for arXiv papers as an additional discussion layer
 
 The script uses metadata and abstracts only. It does not download or summarize PDFs.
-Generated posts are review candidates that follow protocol.md.
+Generated posts are explanatory abstract-based paper notes, not empty protocol placeholders.
 """
 
 from __future__ import annotations
@@ -33,78 +33,126 @@ DATA_DIR = ROOT / "data"
 SEEN_FILE = DATA_DIR / "seen_papers.json"
 
 MAX_RESULTS = int(os.getenv("MAX_RESULTS", "25"))
-MAX_NEW_POSTS = int(os.getenv("MAX_NEW_POSTS", "8"))
+MAX_NEW_POSTS = int(os.getenv("MAX_NEW_POSTS", "5"))
 LOOKBACK_DAYS = int(os.getenv("LOOKBACK_DAYS", "14"))
+MIN_RELEVANCE_SCORE = int(os.getenv("MIN_RELEVANCE_SCORE", "4"))
 CROSSREF_MAILTO = os.getenv("CROSSREF_MAILTO", "")
 
-# Directly aligned with the user's main research direction.
-CORE_KEYWORDS = [
-    "peptide design",
-    "cyclic peptide",
-    "macrocyclic peptide",
-    "protein binder design",
-    "protein-protein interaction",
-    "protein protein interaction",
-    "binding affinity prediction",
-    "molecular docking",
-    "molecular dynamics",
-    "LC3",
-    "LIR motif",
-    "tetherin",
-    "BST-2",
-    "cell permeability peptide",
-    "N-methylation",
-    "non-canonical amino acid",
-    "peptide permeability",
-]
+INTERACTION_GROUPS = {
+    "protein-ligand": {
+        "weight": 3,
+        "keywords": [
+            "protein-ligand",
+            "protein ligand",
+            "small molecule",
+            "ligand binding",
+            "binding pose",
+            "pose prediction",
+            "molecular docking",
+            "docking score",
+            "virtual screening",
+            "hit discovery",
+            "lead optimization",
+            "binding free energy",
+            "free energy perturbation",
+            "alchemical free energy",
+            "FEP",
+            "MM-PBSA",
+            "MM-GBSA",
+            "structure-based drug design",
+            "ligand-based drug design",
+            "fragment-based drug discovery",
+            "covalent inhibitor",
+            "ADMET",
+            "permeability prediction",
+            "toxicity prediction",
+        ],
+    },
+    "protein-protein": {
+        "weight": 4,
+        "keywords": [
+            "protein-protein interaction",
+            "protein protein interaction",
+            "PPI",
+            "protein interface",
+            "interface design",
+            "protein binder",
+            "protein binder design",
+            "de novo protein binder",
+            "protein complex",
+            "protein-protein docking",
+            "protein interaction modulation",
+            "binder design",
+        ],
+    },
+    "protein-peptide": {
+        "weight": 5,
+        "keywords": [
+            "protein-peptide",
+            "protein peptide",
+            "peptide binding",
+            "peptide design",
+            "cyclic peptide",
+            "macrocyclic peptide",
+            "peptide binder",
+            "peptide-protein interaction",
+            "cell permeability peptide",
+            "peptide permeability",
+            "N-methylation",
+            "non-canonical amino acid",
+            "LIR motif",
+            "LC3",
+            "autophagy receptor",
+            "tetherin",
+            "BST-2",
+        ],
+    },
+}
 
-# Broader CADD scouting terms. These allow important or novel CADD papers
-# even when they are not directly peptide/LC3/tetherin papers.
-CADD_KEYWORDS = [
-    "computer-aided drug design",
-    "CADD",
-    "structure-based drug design",
-    "ligand-based drug design",
-    "de novo drug design",
-    "generative molecular design",
-    "molecular generation",
-    "diffusion model drug discovery",
-    "flow matching molecule",
-    "molecular representation learning",
-    "protein-ligand binding",
-    "binding pose prediction",
-    "docking score",
-    "virtual screening",
-    "hit discovery",
-    "lead optimization",
-    "free energy perturbation",
-    "alchemical free energy",
-    "binding free energy",
-    "MM-PBSA",
-    "MM-GBSA",
-    "enhanced sampling",
-    "molecular dynamics acceleration",
-    "ADMET",
-    "permeability prediction",
-    "toxicity prediction",
-    "covalent inhibitor",
-    "fragment-based drug discovery",
-    "retrosynthesis",
-    "synthesis-aware design",
-    "active learning drug discovery",
-    "AI drug discovery",
-    "chemical language model",
-]
+METHOD_KEYWORDS = {
+    "weight": 1,
+    "keywords": [
+        "molecular dynamics",
+        "enhanced sampling",
+        "diffusion model",
+        "flow matching",
+        "generative model",
+        "generative molecular design",
+        "molecular generation",
+        "molecular representation learning",
+        "active learning",
+        "retrosynthesis",
+        "synthesis-aware design",
+        "computer-aided drug design",
+        "CADD",
+        "AI drug discovery",
+    ],
+}
 
-KEYWORDS = CORE_KEYWORDS + CADD_KEYWORDS
+IMPORTANT_TARGET_KEYWORDS = {
+    "weight": 6,
+    "keywords": [
+        "LC3",
+        "LIR motif",
+        "tetherin",
+        "BST-2",
+        "autophagy",
+    ],
+}
+
+KEYWORDS = (
+    INTERACTION_GROUPS["protein-ligand"]["keywords"]
+    + INTERACTION_GROUPS["protein-protein"]["keywords"]
+    + INTERACTION_GROUPS["protein-peptide"]["keywords"]
+    + METHOD_KEYWORDS["keywords"]
+    + IMPORTANT_TARGET_KEYWORDS["keywords"]
+)
 
 ARXIV_QUERY = os.getenv(
     "ARXIV_QUERY",
     " OR ".join(f'all:"{keyword}"' for keyword in KEYWORDS),
 )
 
-# Journals that often publish computational biology, chemical biology,
-# medicinal chemistry, biophysics, protein science, and CADD papers.
 JOURNALS = [
     "Nature Biotechnology",
     "Nature Methods",
@@ -116,7 +164,6 @@ JOURNALS = [
     "PLOS Computational Biology",
     "Bioinformatics",
     "Briefings in Bioinformatics",
-    "Nucleic Acids Research",
     "Structure",
     "Journal of Molecular Biology",
     "Protein Science",
@@ -128,9 +175,6 @@ JOURNALS = [
     "ACS Medicinal Chemistry Letters",
     "Chemical Science",
     "Digital Discovery",
-    "Drug Discovery Today",
-    "Expert Opinion on Drug Discovery",
-    "Molecular Informatics",
     "Journal of Computer-Aided Molecular Design",
 ]
 
@@ -150,6 +194,8 @@ class Paper:
     tags: list[str] = field(default_factory=list)
     extra_links: dict[str, str] = field(default_factory=dict)
     matched_keywords: list[str] = field(default_factory=list)
+    interaction_type: str = "uncategorized"
+    relevance_score: int = 0
 
 
 def load_seen() -> set[str]:
@@ -190,11 +236,6 @@ def yaml_array(items: Iterable[str]) -> str:
     return "[" + ", ".join(safe_items) + "]"
 
 
-def markdown_list(items: Iterable[str]) -> str:
-    clean_items = [clean_text(str(item)) for item in items if clean_text(str(item))]
-    return "\n".join(f"- {item}" for item in clean_items) if clean_items else "- None"
-
-
 def http_json(url: str, *, timeout: int = 30) -> dict:
     headers = {
         "User-Agent": "min0210.github.io paper bot"
@@ -210,30 +251,97 @@ def parse_arxiv_id(entry_id: str) -> str:
     return entry_id.rstrip("/").split("/")[-1]
 
 
-def matched_keywords(*texts: str) -> list[str]:
-    haystack = " ".join(clean_text(text).lower() for text in texts)
-    matches = []
-    for keyword in KEYWORDS:
-        if keyword.lower() in haystack:
-            matches.append(keyword)
-    return matches
+def contains_keyword(haystack: str, keyword: str) -> bool:
+    return keyword.lower() in haystack
 
 
-def keyword_match(*texts: str) -> bool:
-    return bool(matched_keywords(*texts))
+def analyze_relevance(title: str, abstract: str, category: str = "") -> tuple[str, int, list[str]]:
+    haystack = clean_text(f"{title} {abstract} {category}").lower()
+    matched: list[str] = []
+    scores: dict[str, int] = {name: 0 for name in INTERACTION_GROUPS}
+
+    for group_name, group in INTERACTION_GROUPS.items():
+        for keyword in group["keywords"]:
+            if contains_keyword(haystack, keyword):
+                matched.append(keyword)
+                scores[group_name] += int(group["weight"])
+
+    for keyword in METHOD_KEYWORDS["keywords"]:
+        if contains_keyword(haystack, keyword):
+            matched.append(keyword)
+            for group_name in scores:
+                if scores[group_name] > 0:
+                    scores[group_name] += int(METHOD_KEYWORDS["weight"])
+
+    for keyword in IMPORTANT_TARGET_KEYWORDS["keywords"]:
+        if contains_keyword(haystack, keyword):
+            matched.append(keyword)
+            scores["protein-peptide"] += int(IMPORTANT_TARGET_KEYWORDS["weight"])
+            scores["protein-protein"] += 2
+
+    # Penalize generic CADD terms if no concrete interaction type appears.
+    best_group = max(scores, key=scores.get)
+    best_score = scores[best_group]
+    if best_score == 0:
+        return "uncategorized", 0, []
+
+    return best_group, best_score, list(dict.fromkeys(matched))
 
 
-def topic_tags(matches: Iterable[str]) -> list[str]:
-    tags = []
+def accepted_paper(title: str, abstract: str, category: str = "") -> tuple[bool, str, int, list[str]]:
+    interaction_type, score, matches = analyze_relevance(title, abstract, category)
+    return score >= MIN_RELEVANCE_SCORE, interaction_type, score, matches
+
+
+def topic_tags(interaction_type: str, matches: Iterable[str]) -> list[str]:
+    tags = [interaction_type]
     for keyword in matches:
         tag = slugify(keyword)
         if tag:
             tags.append(tag)
-    if any(keyword in CORE_KEYWORDS for keyword in matches):
-        tags.append("core-research")
-    if any(keyword in CADD_KEYWORDS for keyword in matches):
+    if interaction_type == "protein-ligand":
         tags.append("cadd")
+    if interaction_type in {"protein-protein", "protein-peptide"}:
+        tags.append("core-research")
     return list(dict.fromkeys(tags))
+
+
+def infer_problem_statement(paper: Paper) -> str:
+    if paper.interaction_type == "protein-ligand":
+        return (
+            "This paper is relevant to protein-ligand CADD, especially the step where small molecules are generated, docked, scored, "
+            "or prioritized against a protein target. The key thing to check is whether the method improves pose quality, ranking, binding free-energy estimation, "
+            "or downstream hit/lead selection rather than only reporting a generic benchmark."
+        )
+    if paper.interaction_type == "protein-protein":
+        return (
+            "This paper is relevant to protein-protein interaction modeling or modulation. For binder design, the important question is how the method represents "
+            "interfaces, handles conformational flexibility, and ranks complexes or designed binders in a way that could transfer to real experimental selection."
+        )
+    if paper.interaction_type == "protein-peptide":
+        return (
+            "This paper is relevant to protein-peptide or peptide-based modulation. The main points to check are how peptide conformation, hotspot recognition, "
+            "macrocyclization/permeability constraints, and protein-interface complementarity are handled."
+        )
+    return "This paper was collected because its metadata matched the configured CADD relevance filters."
+
+
+def infer_relevance_note(paper: Paper) -> str:
+    direct = {
+        "protein-ligand": "Useful mainly for CADD components such as docking, virtual screening, binding free energy, ADMET, or lead optimization.",
+        "protein-protein": "Potentially useful for protein binder design, PPI modulation, interface scoring, and complex-level ranking.",
+        "protein-peptide": "Potentially useful for peptide binder design, LC3/LIR-like motif targeting, tetherin-interface reasoning, cyclic peptides, and permeability-aware peptide optimization.",
+    }.get(paper.interaction_type, "Useful only if the full paper shows a concrete connection to your design workflow.")
+    return direct
+
+
+def short_abstract_summary(abstract: str, max_sentences: int = 3) -> str:
+    abstract = clean_text(abstract)
+    if not abstract or abstract == "Abstract not available from Crossref metadata.":
+        return "No reliable abstract was available from metadata, so the full paper should be checked before keeping this post."
+    sentences = re.split(r"(?<=[.!?])\s+", abstract)
+    selected = [sentence for sentence in sentences if sentence][:max_sentences]
+    return " ".join(selected)
 
 
 def fetch_arxiv_papers() -> list[Paper]:
@@ -247,31 +355,36 @@ def fetch_arxiv_papers() -> list[Paper]:
 
     papers: list[Paper] = []
     for result in client.results(search):
-        arxiv_id = parse_arxiv_id(result.entry_id)
+        title = clean_text(result.title)
+        abstract = clean_text(result.summary)
         categories = result.categories or []
-        matches = matched_keywords(result.title, result.summary, " ".join(categories))
-        tags = ["papers", "arxiv"] + [cat.replace(".", "-") for cat in categories[:4]] + topic_tags(matches)
+        accepted, interaction_type, score, matches = accepted_paper(title, abstract, " ".join(categories))
+        if not accepted:
+            continue
+        arxiv_id = parse_arxiv_id(result.entry_id)
+        tags = ["papers", "arxiv"] + [cat.replace(".", "-") for cat in categories[:4]] + topic_tags(interaction_type, matches)
         papers.append(
             Paper(
                 source="arXiv",
                 uid=f"arxiv:{arxiv_id}",
-                title=clean_text(result.title),
+                title=title,
                 authors=[author.name for author in result.authors],
                 published=result.published.astimezone(timezone.utc).date(),
-                abstract=clean_text(result.summary),
+                abstract=abstract,
                 paper_url=result.entry_id,
                 pdf_url=result.pdf_url or "",
                 primary_category=result.primary_category or (categories[0] if categories else "arxiv"),
                 tags=list(dict.fromkeys(tags)),
                 extra_links={"alphaXiv": f"https://www.alphaxiv.org/abs/{arxiv_id}"},
                 matched_keywords=matches,
+                interaction_type=interaction_type,
+                relevance_score=score,
             )
         )
     return papers
 
 
 def fetch_biorxiv_papers() -> list[Paper]:
-    # Official endpoint shape: /details/biorxiv/{N}d/0/json
     url = f"https://api.biorxiv.org/details/biorxiv/{LOOKBACK_DAYS}d/0/json"
     try:
         data = http_json(url)
@@ -284,8 +397,8 @@ def fetch_biorxiv_papers() -> list[Paper]:
         title = clean_text(item.get("title", ""))
         abstract = clean_text(item.get("abstract", ""))
         category = clean_text(item.get("category", ""))
-        matches = matched_keywords(title, abstract, category)
-        if not matches:
+        accepted, interaction_type, score, matches = accepted_paper(title, abstract, category)
+        if not accepted:
             continue
 
         doi = clean_text(item.get("doi", ""))
@@ -296,13 +409,8 @@ def fetch_biorxiv_papers() -> list[Paper]:
         except ValueError:
             published = datetime.now(timezone.utc).date()
 
-        authors = [
-            clean_text(author)
-            for author in re.split(r";|,", item.get("authors", ""))
-            if clean_text(author)
-        ]
-
-        tags = ["papers", "biorxiv", slugify(category or "preprint")] + topic_tags(matches)
+        authors = [clean_text(author) for author in re.split(r";|,", item.get("authors", "")) if clean_text(author)]
+        tags = ["papers", "biorxiv", slugify(category or "preprint")] + topic_tags(interaction_type, matches)
         papers.append(
             Paper(
                 source="bioRxiv",
@@ -317,6 +425,8 @@ def fetch_biorxiv_papers() -> list[Paper]:
                 primary_category=category or "bioRxiv",
                 tags=list(dict.fromkeys(tags)),
                 matched_keywords=matches,
+                interaction_type=interaction_type,
+                relevance_score=score,
             )
         )
     return papers
@@ -335,11 +445,8 @@ def crossref_date_parts_to_date(parts: list[list[int]] | None) -> date:
 def fetch_crossref_journal_papers() -> list[Paper]:
     until = datetime.now(timezone.utc).date()
     since = until - timedelta(days=LOOKBACK_DAYS)
-    rows_per_journal = max(3, min(10, MAX_RESULTS // 2))
+    rows_per_journal = max(2, min(6, MAX_RESULTS // 4))
     papers: list[Paper] = []
-
-    # Crossref's query field is broad. We keep the query broad and then apply
-    # local keyword filtering to reduce irrelevant journal hits.
     crossref_query = " ".join(KEYWORDS)
 
     for journal in JOURNALS:
@@ -366,8 +473,8 @@ def fetch_crossref_journal_papers() -> list[Paper]:
             titles = item.get("title") or []
             title = clean_text(titles[0] if titles else "")
             abstract = clean_text(re.sub("<[^>]+>", " ", item.get("abstract", "")))
-            matches = matched_keywords(title, abstract, journal)
-            if not title or not matches:
+            accepted, interaction_type, score, matches = accepted_paper(title, abstract, journal)
+            if not title or not accepted:
                 continue
 
             doi = clean_text(item.get("DOI", ""))
@@ -387,7 +494,7 @@ def fetch_crossref_journal_papers() -> list[Paper]:
                 if name:
                     authors.append(name)
 
-            tags = ["papers", "journal", slugify(journal_name)] + topic_tags(matches)
+            tags = ["papers", "journal", slugify(journal_name)] + topic_tags(interaction_type, matches)
             papers.append(
                 Paper(
                     source="Journal",
@@ -402,6 +509,8 @@ def fetch_crossref_journal_papers() -> list[Paper]:
                     primary_category="journal-article",
                     tags=list(dict.fromkeys(tags)),
                     matched_keywords=matches,
+                    interaction_type=interaction_type,
+                    relevance_score=score,
                 )
             )
 
@@ -416,11 +525,15 @@ def build_post(paper: Paper) -> tuple[str, str]:
     filename = f"{paper.published.isoformat()}-{slug}.md"
 
     tags = list(dict.fromkeys([tag for tag in paper.tags if tag]))
-    categories = "[Bio, Paper Review]" if any(tag in tags for tag in ["core-research", "biorxiv"]) else "[AI, Drug Discovery]"
+    categories = {
+        "protein-ligand": "[Protein-Ligand, Paper Review]",
+        "protein-protein": "[Protein-Protein, Paper Review]",
+        "protein-peptide": "[Protein-Peptide, Paper Review]",
+    }.get(paper.interaction_type, "[CADD, Paper Review]")
+
     description = (
-        "Review candidate covering "
-        + (", ".join(paper.matched_keywords[:4]) if paper.matched_keywords else paper.source)
-        + "; expand using protocol.md."
+        f"{paper.interaction_type} paper from {paper.source}; matched "
+        f"{', '.join(paper.matched_keywords[:3]) if paper.matched_keywords else 'configured filters'}."
     )
 
     front_matter = "\n".join(
@@ -436,6 +549,9 @@ def build_post(paper: Paper) -> tuple[str, str]:
             "mermaid: true",
             f"source: {yaml_string(paper.source)}",
             f"journal: {yaml_string(paper.journal)}",
+            f"interaction_type: {yaml_string(paper.interaction_type)}",
+            f"relevance_score: {paper.relevance_score}",
+            f"matched_keywords: {yaml_array(paper.matched_keywords)}",
             f"paper_url: {yaml_string(paper.paper_url)}",
             f"pdf_url: {yaml_string(paper.pdf_url)}",
             f"primary_category: {yaml_string(paper.primary_category)}",
@@ -443,134 +559,48 @@ def build_post(paper: Paper) -> tuple[str, str]:
         ]
     )
 
-    extra_link_lines = "\n".join(
-        f"- **{name}:** [{url}]({url})" for name, url in paper.extra_links.items() if url
-    )
+    extra_link_lines = "\n".join(f"- **{name}:** [{url}]({url})" for name, url in paper.extra_links.items() if url)
+    abstract_summary = short_abstract_summary(paper.abstract)
+    problem_statement = infer_problem_statement(paper)
+    relevance_note = infer_relevance_note(paper)
 
     body = f"""{front_matter}
 
-## Hook
+## Why this paper was selected
 
-이 포스트는 자동 수집된 리뷰 후보입니다. `protocol.md` 기준에 맞춰 논문 PDF, supplement, code, benchmark를 확인한 뒤 long-form technical review로 확장하세요.
+- **Interaction class:** `{paper.interaction_type}`
+- **Relevance score:** `{paper.relevance_score}` / threshold `{MIN_RELEVANCE_SCORE}`
+- **Matched keywords:** {', '.join(paper.matched_keywords) if paper.matched_keywords else 'N/A'}
 
-이 논문이 중요한지 판단할 때는 두 가지 관점으로 봅니다.
+{problem_statement}
 
-1. 내 core research, 즉 peptide/protein binder, LC3/LIR, tetherin, docking, MD, permeability workflow에 직접 도움이 되는가?
-2. 직접적인 주제가 아니더라도 CADD 관점에서 방법론적으로 새롭거나 실제 drug discovery workflow를 바꿀 가능성이 있는가?
+## Paper summary from metadata
 
-## Problem
+{abstract_summary}
 
-작성할 때 확인할 병목:
+## What to look for in the full paper
 
-- 이 논문은 어떤 biological, chemical, or computational bottleneck을 다루는가?
-- docking score, binding affinity, MD sampling, permeability, ADMET, synthesis feasibility 중 무엇과 연결되는가?
-- 기존 방법은 어디에서 실패하거나 비효율적인가?
+### Method
 
-## Key Idea
+Check how the authors define the molecular or structural representation, what model or scoring function is used, and whether the method operates on sequence, structure, complex geometry, MD trajectories, or assay data.
 
-- 핵심 아이디어 1:
-- 핵심 아이디어 2:
-- 핵심 아이디어 3:
-- baseline 대비 가장 큰 차이:
+### Validation
 
-## How It Works
+Check whether the paper reports only computational benchmarks or also includes wet-lab validation, prospective screening, docking pose validation, binding affinity assays, MD stability, or ADMET/permeability measurements.
 
-### Overview
+### Practical relevance
 
-전체 pipeline을 입력 → representation → model/scoring/simulation → output 순서로 정리합니다.
+{relevance_note}
 
-### Representation / Problem Formulation
+## My research / CADD relevance
 
-분자, 단백질, peptide, complex, conformer, trajectory, assay data가 어떻게 표현되는지 정리합니다.
-
-### Core Mathematical or Structural Setup
-
-핵심 수식, energy, score, probability, loss, docking objective, free-energy estimator, sampling rule을 정리합니다.
-
-### Architecture / Pipeline
-
-모듈별 역할을 설명합니다.
-
-```python
-# Pseudocode placeholder
-inputs = load_molecular_or_structural_inputs()
-representations = encode(inputs)
-scores_or_samples = model_or_protocol(representations)
-ranked_candidates = rank(scores_or_samples)
-```
-
-### Training, Scoring, or Simulation Objective
-
-모델의 loss, docking score, free energy objective, MD protocol, or selection criterion을 정리합니다.
-
-### Inference / Docking / MD / Ranking
-
-실제 후보를 어떻게 생성하고 ranking하는지 설명합니다.
-
-### Why This Might Work
-
-이 접근이 왜 기존 방법보다 나을 수 있는지 inductive bias, physics, data, representation 관점에서 설명합니다.
-
-## Results
-
-확인할 것:
-
-- main benchmark와 metric
-- ablation
-- generalization / OOD
-- docking success rate or enrichment factor
-- binding affinity correlation or free energy error
-- MD stability, RMSD, contact persistence
-- ADMET or permeability metric
-- wet-lab validation 여부
-
-## Discussion
-
-논문 claim과 내 해석을 구분해서 적습니다.
-
-- 실제 CADD workflow에서 어느 단계에 들어갈 수 있는가?
-- peptide/protein binder design에 직접 연결되는가?
-- 직접 연결되지 않는다면 왜 그래도 중요한가?
-
-## Limitations
-
-- benchmark가 제한적인가?
-- wet-lab validation이 있는가?
-- induced fit, membrane, glycan, solvent exposure, cofactor를 고려했는가?
-- docking/MD/free energy 조건이 충분한가?
-- synthesis feasibility 또는 medicinal chemistry constraints를 고려했는가?
-- code/data 공개 여부는 어떤가?
-
-## Relevance to My Research / CADD
-
-### Direct relevance
-
-- peptide design:
-- protein binder design:
-- LC3/LIR:
-- BST-2/tetherin:
-- docking / MD:
-- permeability / N-methylation / NCAA:
-
-### Broader CADD relevance
-
-- virtual screening:
-- hit discovery / hit expansion:
-- lead optimization:
-- ADMET:
-- free energy / MD:
-- synthesis-aware design:
-
-## Conclusion
-
-이 논문에서 가져갈 점을 한 문단으로 정리합니다.
-
-## TL;DR
-
-- Source: {paper.source}
-- Matched keywords: {', '.join(paper.matched_keywords) if paper.matched_keywords else 'N/A'}
-- Main reason to review:
-- Main caveat to check:
+| Question | Initial note |
+|---|---|
+| Protein-ligand relevance | {'High' if paper.interaction_type == 'protein-ligand' else 'Check only if the method transfers to ligand scoring, docking, or ADMET.'} |
+| Protein-protein relevance | {'High' if paper.interaction_type == 'protein-protein' else 'Check only if interface modeling or binder ranking is involved.'} |
+| Protein-peptide relevance | {'High' if paper.interaction_type == 'protein-peptide' else 'Check only if peptide-like binding, motifs, macrocycles, or permeability appear.'} |
+| Docking / MD relevance | {'Check docking, pose, MD, free-energy, or sampling details.' if any(k.lower() in ' '.join(paper.matched_keywords).lower() for k in ['docking', 'molecular dynamics', 'free energy', 'sampling']) else 'Not obvious from metadata.'} |
+| Experimental follow-up | Check whether the paper changes how candidates should be prioritized for synthesis or assay. |
 
 ## Paper Info
 
@@ -580,11 +610,11 @@ ranked_candidates = rank(scores_or_samples)
 | Authors | {', '.join(paper.authors) if paper.authors else 'Unknown'} |
 | Venue / Source | {paper.journal or paper.source} |
 | Published | {paper.published.isoformat()} |
+| Interaction type | {paper.interaction_type} |
+| Relevance score | {paper.relevance_score} |
 | Category | {paper.primary_category or 'N/A'} |
 | Link | [{paper.paper_url}]({paper.paper_url}) |
 | PDF | {f'[{paper.pdf_url}]({paper.pdf_url})' if paper.pdf_url else 'N/A'} |
-| Code | To check |
-| Data | To check |
 """
 
     if extra_link_lines:
@@ -598,7 +628,7 @@ ranked_candidates = rank(scores_or_samples)
 ---
 
 > 이 글은 LLM(Large Language Model)의 도움을 받아 작성되었습니다.
-> 논문의 내용을 기반으로 작성되었으나, 부정확한 내용이 있을 수 있습니다.
+> 논문의 metadata와 abstract를 기반으로 자동 생성되었으므로, full paper 확인 후 수정이 필요할 수 있습니다.
 > 오류 지적이나 피드백은 언제든 환영합니다.
 {{: .prompt-info }}
 """
@@ -614,7 +644,7 @@ def deduplicate_papers(papers: Iterable[Paper]) -> list[Paper]:
             continue
         seen.add(key)
         unique.append(paper)
-    return sorted(unique, key=lambda paper: paper.published, reverse=True)
+    return sorted(unique, key=lambda paper: (paper.relevance_score, paper.published), reverse=True)
 
 
 def main() -> None:
@@ -622,11 +652,7 @@ def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     seen = load_seen()
-    all_papers = deduplicate_papers(
-        fetch_arxiv_papers()
-        + fetch_biorxiv_papers()
-        + fetch_crossref_journal_papers()
-    )
+    all_papers = deduplicate_papers(fetch_arxiv_papers() + fetch_biorxiv_papers() + fetch_crossref_journal_papers())
 
     new_count = 0
     for paper in all_papers:

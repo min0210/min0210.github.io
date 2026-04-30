@@ -1,14 +1,16 @@
 # min0210.github.io
 
-A GitHub Pages research paper blog that automatically collects recent papers and turns them into Markdown posts.
+A GitHub Pages research paper blog that automatically collects recent papers and turns them into Markdown review candidates.
 
 ## What this site does
 
 - Builds a simple Jekyll blog on GitHub Pages.
-- Fetches recent papers from arXiv.
-- Creates one Markdown post per new paper.
+- Fetches recent papers from arXiv, bioRxiv, and journal metadata through Crossref.
+- Adds alphaXiv links for arXiv papers when available.
+- Creates one Markdown review-candidate post per new paper.
 - Tracks already-seen papers in `data/seen_papers.json`.
-- Runs automatically with GitHub Actions every week.
+- Runs automatically with GitHub Actions every day.
+- Uses `protocol.md` as the writing standard for long-form technical reviews.
 
 ## Local setup
 
@@ -26,10 +28,56 @@ python -m pip install arxiv python-slugify
 python scripts/fetch_papers.py
 ```
 
-## Topics
+Optional environment variables:
 
-The default query focuses on peptide design, protein-protein interactions, binding affinity prediction, docking, molecular dynamics, autophagy, LC3, LIR motif, BST-2/tetherin, and computational drug design.
+```bash
+MAX_RESULTS=25 MAX_NEW_POSTS=8 LOOKBACK_DAYS=14 python scripts/fetch_papers.py
+```
+
+## Paper selection scope
+
+The fetcher uses two priority layers.
+
+### Core research priority
+
+- peptide design
+- cyclic / macrocyclic peptide
+- protein binder design
+- protein-protein interaction modulation
+- binding affinity prediction
+- molecular docking
+- molecular dynamics
+- LC3 / LIR motif
+- BST-2 / tetherin
+- peptide permeability
+- N-methylation
+- non-canonical amino acids
+
+### Broad CADD scouting priority
+
+The blog also collects papers that are important or novel from a broader computer-aided drug design perspective, even if they are not directly about the core targets above.
+
+Examples:
+
+- structure-based drug design
+- ligand-based drug design
+- generative molecular design
+- docking score improvement
+- binding pose prediction
+- binding free energy prediction
+- FEP / alchemical free energy
+- enhanced sampling
+- ADMET / permeability / toxicity prediction
+- virtual screening
+- lead optimization
+- retrosynthesis and synthesis-aware design
+- fragment-based drug discovery
+- AI for drug discovery
 
 ## Automation
 
-The workflow in `.github/workflows/fetch-papers.yml` runs weekly and can also be started manually from the GitHub Actions tab.
+The workflow in `.github/workflows/fetch-papers.yml` runs daily and can also be started manually from the GitHub Actions tab.
+
+## Review protocol
+
+See `protocol.md` or `/protocol/` on the site. Automatically generated posts are review candidates, not finished reviews. They should be expanded into long-form technical reviews after reading the paper, supplement, figures, and code.

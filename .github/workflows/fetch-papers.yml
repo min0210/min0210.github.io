@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "scripts/fetch_papers.py"
-      - ".github/workflows/fetch-papers.yml"
-      - "protocol.md"
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
@@ -17,6 +13,7 @@ permissions:
 
 jobs:
   fetch-papers:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:

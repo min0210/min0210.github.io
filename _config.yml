@@ -1,7 +1,10 @@
-title: "min0210 Research Notes"
-description: "Recent papers and research notes on peptide design, protein binding, docking, molecular simulation, and CADD."
+title: "Sangmin Research Notes"
+description: "Curated research notes on peptide design, protein binders, molecular simulation, docking, and CADD."
 url: "https://min0210.github.io"
 baseurl: ""
+
+author:
+  name: "Sangmin"
 
 markdown: kramdown
 theme: minima

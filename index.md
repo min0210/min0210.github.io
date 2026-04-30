@@ -18,24 +18,24 @@ title: Home
 <h2 class="section-title">Research focus</h2>
 
 <div class="card-grid">
-  <div class="card">
+  <a class="card category-card" href="{{ '/papers/protein-ligand/' | relative_url }}">
     <h3>Protein-ligand</h3>
     <p>Small-molecule docking, pose prediction, virtual screening, binding free energy, ADMET, lead optimization, and practical CADD methods.</p>
-  </div>
-  <div class="card">
+  </a>
+  <a class="card category-card" href="{{ '/papers/protein-protein/' | relative_url }}">
     <h3>Protein-protein</h3>
     <p>Protein interfaces, PPI modulation, protein binder design, complex modeling, interface scoring, and experimental binder prioritization.</p>
-  </div>
-  <div class="card">
+  </a>
+  <a class="card category-card" href="{{ '/papers/protein-peptide/' | relative_url }}">
     <h3>Protein-peptide</h3>
     <p>Peptide binders, cyclic/macrocyclic peptides, LC3/LIR-like motif targeting, tetherin-related interface reasoning, permeability, and NCAA/N-methylation strategies.</p>
-  </div>
+  </a>
 </div>
 
 <h2 class="section-title">Topics tracked automatically</h2>
 
 <div class="card-grid">
-  <div class="card">
+  <a class="card category-card" href="{{ '/papers/protein-ligand/' | relative_url }}">
     <h3>Protein-ligand</h3>
     <div class="tag-cloud">
       <span class="tag-chip">docking</span>
@@ -45,8 +45,8 @@ title: Home
       <span class="tag-chip">ADMET</span>
       <span class="tag-chip">lead-optimization</span>
     </div>
-  </div>
-  <div class="card">
+  </a>
+  <a class="card category-card" href="{{ '/papers/protein-protein/' | relative_url }}">
     <h3>Protein-protein</h3>
     <div class="tag-cloud">
       <span class="tag-chip">PPI</span>
@@ -56,8 +56,8 @@ title: Home
       <span class="tag-chip">interface-scoring</span>
       <span class="tag-chip">binder-design</span>
     </div>
-  </div>
-  <div class="card">
+  </a>
+  <a class="card category-card" href="{{ '/papers/protein-peptide/' | relative_url }}">
     <h3>Protein-peptide</h3>
     <div class="tag-cloud">
       <span class="tag-chip">peptide-design</span>
@@ -67,7 +67,7 @@ title: Home
       <span class="tag-chip">tetherin</span>
       <span class="tag-chip">permeability</span>
     </div>
-  </div>
+  </a>
 </div>
 
 <h2 class="section-title">Recent notes</h2>

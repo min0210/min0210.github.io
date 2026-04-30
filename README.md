@@ -1,15 +1,15 @@
-# min0210.github.io
+# Sangmin Research Notes
 
 A GitHub Pages research paper blog that automatically collects recent papers and turns them into Markdown review candidates.
 
 ## What this site does
 
-- Builds a simple Jekyll blog on GitHub Pages.
+- Builds a polished Jekyll blog on GitHub Pages.
 - Fetches recent papers from arXiv, bioRxiv, and journal metadata through Crossref.
 - Adds alphaXiv links for arXiv papers when available.
 - Creates one Markdown review-candidate post per new paper.
 - Tracks already-seen papers in `data/seen_papers.json`.
-- Runs automatically with GitHub Actions every day.
+- Runs automatically with GitHub Actions every day and on pushes to `main`.
 - Uses `protocol.md` as the writing standard for long-form technical reviews.
 
 ## Local setup
@@ -76,7 +76,7 @@ Examples:
 
 ## Automation
 
-The workflow in `.github/workflows/fetch-papers.yml` runs daily and can also be started manually from the GitHub Actions tab.
+The workflow in `.github/workflows/fetch-papers.yml` runs daily, runs on pushes to `main`, and can also be started manually from the GitHub Actions tab.
 
 ## Review protocol
 

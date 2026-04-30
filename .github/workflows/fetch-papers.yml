@@ -1,6 +1,13 @@
 name: Fetch papers
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/fetch_papers.py"
+      - ".github/workflows/fetch-papers.yml"
+      - "protocol.md"
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:

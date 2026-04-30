@@ -1,12 +1,16 @@
+---
+layout: page
+title: Paper Review Protocol
+permalink: /protocol/
+---
+
 # min0210.github.io Paper Review Protocol
 
 이 문서는 `min0210.github.io` 블로그의 논문 리뷰 포스트 작성 프로토콜이다.
 
-원본 `BLOG_POST_PROTOCOL.md`의 핵심 원칙인 **깊은 해설형 long-form technical review**를 유지하되, 이 블로그의 연구 방향에 맞게 peptide/protein binder, LC3/LIR, tetherin, MD, docking, 그리고 넓은 의미의 CADD 관점까지 확장한다.
+원본 `BLOG_POST_PROTOCOL.md`의 핵심 원칙인 **깊은 해설형 long-form technical review**를 유지하되, 이 블로그의 연구 방향에 맞게 peptide/protein binder, LC3/LIR, tetherin, MD, docking, 그리고 넓은 의미의 CADD 관점까지 확장한다. 원본 프로토콜은 “단순 요약이 아니라 문제의식, 핵심 수식, 모델링 선택, 구현 감각, 실험 결과, 한계까지 따라올 수 있는 리뷰”를 목표로 한다. 이 방향을 유지하면서 `min0210`의 연구축에 맞게 적용한다.
 
-목표는 단순 요약이 아니라 다음 수준의 글이다.
-
-> 논문을 안 읽은 사람도 이 글 하나로 문제의식, 핵심 수식, 모델/프로토콜 설계 이유, 실험 결과, 한계, 그리고 내 연구에 어떻게 쓸 수 있는지까지 따라올 수 있는 리뷰.
+> 목표: 논문을 안 읽은 사람도 이 글 하나로 문제의식, 핵심 수식, 모델/프로토콜 설계 이유, 실험 결과, 한계, 그리고 내 연구에 어떻게 쓸 수 있는지까지 따라올 수 있는 리뷰.
 
 ---
 
@@ -171,8 +175,6 @@ primary_category: "<category>"
 
 ## 5. 기본 문서 구조
 
-새 논문 리뷰는 아래 구조를 기본으로 한다.
-
 ```md
 ## Hook
 ## Problem
@@ -230,9 +232,7 @@ primary_category: "<category>"
 
 ### Key Idea
 
-핵심 기여를 3~4개의 bullet로 압축한다.
-
-가능하면 baseline 대비 차이를 짧은 표로 정리한다.
+핵심 기여를 3~4개의 bullet로 압축한다. 가능하면 baseline 대비 차이를 짧은 표로 정리한다.
 
 ### How It Works
 
@@ -314,120 +314,9 @@ primary_category: "<category>"
 - virtual screening, hit expansion, lead optimization, ADMET, free energy, synthesis planning 중 어디에 도움이 되는가?
 - 실험 후보 선정 기준을 바꿀 수 있는가?
 
-### Conclusion
-
-한 문단으로 기억할 수 있게 쓴다.
-
-구성:
-
-- 가장 중요한 기여
-- 가장 중요한 기술 포인트
-- 가장 중요한 caveat
-- 내가 가져갈 점
-
-### TL;DR
-
-3~6개 bullet로 정리한다.
-
-최소 하나는 정량적 결과 또는 구체적 조건을 포함한다.
-
-### Paper Info
-
-```md
-## Paper Info
-
-| 항목 | 내용 |
-|---|---|
-| Title | ... |
-| Authors | ... |
-| Affiliations | ... |
-| Venue / Source | ... |
-| Published | ... |
-| Link | ... |
-| PDF | ... |
-| Code | ... |
-| Data | ... |
-```
-
 ---
 
-## 7. 문체 규칙
-
-해야 할 것:
-
-- 한국어 중심, 핵심 용어는 영어 유지
-- 직관과 해석을 같이 제공
-- 비교는 구체적으로
-- 단정이 어려우면 caveat를 명시
-- 내 연구 적용 가능성과 CADD workflow 적용 위치를 별도로 정리
-
-피해야 할 것:
-
-- 초록 재서술
-- 과장된 평가
-- 수식만 던지고 설명하지 않기
-- 실험 조건 차이를 무시한 비교
-- 논문 claim과 내 추론을 섞어 쓰기
-
----
-
-## 8. 작성 절차
-
-### Step 1. 논문 읽기
-
-- abstract만 보지 말고 method/results/appendix까지 본다.
-- 핵심 claim 1문장, 핵심 기여 3개, 핵심 식 또는 구조 3개를 뽑는다.
-
-### Step 2. 구조 잡기
-
-- Hook
-- Problem
-- Key Idea
-- How It Works 세부 소제목
-- Results
-- Discussion
-- Limitations
-- Relevance to My Research / CADD
-- Conclusion
-- TL;DR
-- Paper Info
-
-### Step 3. 중심축 정리
-
-다음 중 무엇이 핵심인지 정한다.
-
-- state space
-- structural representation
-- molecular representation
-- objective / score
-- energy function
-- sampling algorithm
-- inductive bias
-- docking / MD / free energy protocol
-- ranking / confidence
-- experimental validation
-
-### Step 4. 본문 작성
-
-우선순위:
-
-1. Hook / Problem / Key Idea
-2. How It Works 확장
-3. Results 해석
-4. Relevance to My Research / CADD
-5. Discussion / Limitations
-
-### Step 5. Polish
-
-- 첫 3문단 sharpen
-- 수식 뒤 해설 보강
-- 결과 표 해석 추가
-- TL;DR 강화
-- 관련 포스트 내부 링크 추가
-
----
-
-## 9. 품질 체크리스트
+## 7. 품질 체크리스트
 
 최소 기준:
 
@@ -452,7 +341,7 @@ primary_category: "<category>"
 
 ---
 
-## 10. 마지막 고정 블록
+## 8. 마지막 고정 블록
 
 ```md
 ---
@@ -465,7 +354,7 @@ primary_category: "<category>"
 
 ---
 
-## 11. 자동 수집 포스트의 역할
+## 9. 자동 수집 포스트의 역할
 
 자동 수집 포스트는 완성 리뷰가 아니라 **리뷰 후보 초안**이다.
 
@@ -488,6 +377,6 @@ primary_category: "<category>"
 
 ---
 
-## 12. 최종 요약
+## 10. 최종 요약
 
 `min0210.github.io`의 논문 리뷰는 앞으로 **peptide/protein binder 설계 연구와 넓은 CADD 관점에 실제로 도움이 되는 long-form technical review**를 표준으로 한다. 핵심은 논문을 많이 모으는 것이 아니라, 중요한 논문을 깊게 읽고 내 workflow에 연결하는 것이다.

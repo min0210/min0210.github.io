@@ -1,0 +1,26 @@
+title: "min0210 Research Notes"
+description: "Recent papers and research notes on peptide design, protein binding, docking, and molecular simulation."
+url: "https://min0210.github.io"
+baseurl: ""
+
+markdown: kramdown
+theme: minima
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+collections:
+  posts:
+    output: true
+
+permalink: /:year/:month/:day/:title/
+
+header_pages:
+  - papers.md
+
+exclude:
+  - scripts/
+  - data/
+  - vendor/
+  - README.md

@@ -1,19 +1,26 @@
 name: Fetch papers
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
+    inputs:
+      max_new_posts:
+        description: "Maximum number of new posts to create"
+        required: false
+        default: "3"
+      min_relevance_score:
+        description: "Minimum relevance score required"
+        required: false
+        default: "6"
+      enable_crossref:
+        description: "Set to 1 to include noisy Crossref journal metadata"
+        required: false
+        default: "0"
 
 permissions:
   contents: write
 
 jobs:
   fetch-papers:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
@@ -33,9 +40,10 @@ jobs:
       - name: Fetch recent papers
         env:
           MAX_RESULTS: "25"
-          MAX_NEW_POSTS: "5"
+          MAX_NEW_POSTS: ${{ github.event.inputs.max_new_posts || '3' }}
           LOOKBACK_DAYS: "14"
-          MIN_RELEVANCE_SCORE: "4"
+          MIN_RELEVANCE_SCORE: ${{ github.event.inputs.min_relevance_score || '6' }}
+          ENABLE_CROSSREF: ${{ github.event.inputs.enable_crossref || '0' }}
         run: python scripts/fetch_papers.py
 
       - name: Commit generated posts

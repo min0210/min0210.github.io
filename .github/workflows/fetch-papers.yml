@@ -33,8 +33,9 @@ jobs:
       - name: Fetch recent papers
         env:
           MAX_RESULTS: "25"
-          MAX_NEW_POSTS: "8"
+          MAX_NEW_POSTS: "5"
           LOOKBACK_DAYS: "14"
+          MIN_RELEVANCE_SCORE: "4"
         run: python scripts/fetch_papers.py
 
       - name: Commit generated posts
